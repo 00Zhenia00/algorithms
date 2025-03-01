@@ -1,0 +1,30 @@
+import pandas as pd
+
+class OneRuleClassifier:
+    def fit(self, X: pd.DataFrame, y: pd.DataFrame):
+        rows_num = X.shape[0]
+        df: pd.DataFrame = pd.concat([X, y], axis=1)
+        features = df.columns[:-1]
+        target = df.columns[-1]
+
+        min_feature_score = 1.1
+        classification_map = dict()
+        classification_feature = str()
+
+        for feature in features:
+            freq_table = pd.get_dummies(df[[feature, target]], columns=[target], dtype=int, prefix="", prefix_sep="").groupby(feature).sum()
+            freq_table = freq_table.assign(MinValue = freq_table.min(axis=1), MaxValueCol = freq_table.idxmax(axis=1))
+            cls_map = freq_table["MaxValueCol"].to_dict()
+            feature_score = float(freq_table[["MinValue"]].sum().iloc[0]) / rows_num
+            if feature_score < min_feature_score:
+                classification_feature = feature
+                classification_map = cls_map
+                min_feature_score = feature_score
+        
+        self._classification_feature = classification_feature
+        self._classification_map = classification_map
+
+    def predict(self, X: pd.DataFrame):
+        y = X.loc[:, [self._classification_feature]].map(lambda x: self._classification_map[x])
+        y = y.set_axis(labels=["prediction"], axis=1)
+        return y
