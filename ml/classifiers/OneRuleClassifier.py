@@ -1,15 +1,20 @@
 import pandas as pd
 
 class OneRuleClassifier:
-    def fit(self, X: pd.DataFrame, y: pd.DataFrame):
-        rows_num = X.shape[0]
-        df: pd.DataFrame = pd.concat([X, y], axis=1)
-        features = df.columns[:-1]
-        target = df.columns[-1]
+    def __init__(self):
+        self._classification_feature = str()
+        self._classification_map = dict()
 
-        min_feature_score = 1.1
-        classification_map = dict()
-        classification_feature = str()
+        
+    def fit(self, X: pd.DataFrame, y: pd.DataFrame):
+        rows_num: int = X.shape[0]
+        df: pd.DataFrame = pd.concat([X, y], axis=1)
+        features: list = df.columns[:-1]
+        target: str = df.columns[-1]
+
+        min_feature_score: float = 1.1
+        classification_map: dict = dict()
+        classification_feature: dict = str()
 
         for feature in features:
             freq_table = pd.get_dummies(df[[feature, target]], columns=[target], dtype=int, prefix="", prefix_sep="").groupby(feature).sum()
@@ -25,6 +30,5 @@ class OneRuleClassifier:
         self._classification_map = classification_map
 
     def predict(self, X: pd.DataFrame):
-        y = X.loc[:, [self._classification_feature]].map(lambda x: self._classification_map[x])
-        y = y.set_axis(labels=["prediction"], axis=1)
+        y: pd.Series = X.loc[:, [self._classification_feature]].map(lambda x: self._classification_map[x])[:, -1]
         return y
