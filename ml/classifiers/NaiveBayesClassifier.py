@@ -6,7 +6,7 @@ class NaiveBayesClassifier:
         self._prior_probs = dict()
         self._conditional_probs = dict()
 
-    def fit(self, X: pd.DataFrame, y: pd.DataFrame):
+    def fit(self, X: pd.DataFrame, y: pd.Series):
         df: pd.DataFrame = pd.concat([X, y], axis=1)
         features = df.columns[:-1]
         target = df.columns[-1]
@@ -37,7 +37,7 @@ class NaiveBayesClassifier:
         return y
 
 
-    def _predict(self, sample: pd.Series, features):
+    def _predict(self, sample: pd.Series, features: list):
         post_probs = {}
 
         for cls in self._classes:
