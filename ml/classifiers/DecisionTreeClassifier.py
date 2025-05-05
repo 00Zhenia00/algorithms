@@ -31,10 +31,12 @@ def information_gain(X: pd.DataFrame, y: pd.Series, split_col: str) -> float:
     return total_entropy - weighted_entropy
 
 class Node:
-    def __init__(self, split_feature: str = None, split_dict: dict = None, class_label: str = None):
+    def __init__(self, split_feature: str = None, split_dict: dict = None, class_label: str = None,
+                 selection_weight=None):
         self._split_feature: str = split_feature
         self._split_dict: dict = split_dict
         self._class_label: str = class_label
+        self._selection_weight = selection_weight
     
     @property
     def class_label(self):
@@ -47,6 +49,10 @@ class Node:
     @property
     def split_feature(self):
         return self._split_feature
+    
+    @property
+    def selection_weight(self):
+        return self._selection_weight
     
     def is_leaf(self) -> bool:
         return self._class_label is not None
@@ -68,14 +74,14 @@ class DecisionTreeClassifier:
     
     def _build_tree(self, X: pd.DataFrame, y: pd.Series, features: list, depth: int = None) -> Node:
         if len(features) == 0:
-            return Node(class_label=y.mode().to_list()[-1])
+            return Node(class_label=y.mode().to_list()[-1], selection_weight=X.shape[0])
         
         if depth:
             if depth > self._depth:
-                return Node(class_label=y.mode().to_list()[-1])
+                return Node(class_label=y.mode().to_list()[-1], selection_weight=X.shape[0])
 
         if y.nunique() == 1:
-            return Node(class_label=pd.unique(y)[-1])
+            return Node(class_label=pd.unique(y)[-1], selection_weight=X.shape[0])
             
         max_information_gain = -1
         max_IG_feature = str()
@@ -88,7 +94,7 @@ class DecisionTreeClassifier:
         split_values = pd.unique(X[max_IG_feature])
 
         if len(split_values) == 1:
-            return Node(class_label=pd.unique(y)[-1])
+            return Node(class_label=pd.unique(y)[-1], selection_weight=X.shape[0])
 
         self._log(f"_build_tree(): Split feature:{max_IG_feature} | IG:{max_information_gain}")
 
@@ -97,13 +103,17 @@ class DecisionTreeClassifier:
             mask = X[max_IG_feature] == value
             child_nodes[str(value)] = self._build_tree(X[mask], y[mask], list(set(features)-{max_IG_feature}), depth + 1 if depth else None)
         
-        return Node(split_feature=max_IG_feature, split_dict=child_nodes)
+        return Node(split_feature=max_IG_feature, split_dict=child_nodes, selection_weight=X.shape[0])
 
     def _search_tree(self, sample: pd.Series, node: Node) -> int:
         if node.is_leaf():
             return node.class_label
         else:
-            return self._search_tree(sample, node.split_dict[str(sample[node.split_feature])])
+            if str(sample[node.split_feature]) in node.split_dict.keys():
+                return self._search_tree(sample, node.split_dict[str(sample[node.split_feature])])
+            else:
+                likely_node_key = max(node.split_dict, key=lambda k: node.split_dict[k].selection_weight)
+                return self._search_tree(sample, node.split_dict[likely_node_key])
     
     def _log(self, s: str):
         if self._logging:

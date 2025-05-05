@@ -31,4 +31,4 @@ class KNNClassifier:
     def _predict_sample(self, sample: pd.Series):
         distances = [euclidean_distance(sample, train_sample) for _, train_sample in self._X_train.iterrows()]
         indices = np.argsort(distances)[: self._k]
-        return self._y_train[indices].mode().to_list()[-1]
+        return self._y_train.iloc[indices].mode().to_list()[-1]

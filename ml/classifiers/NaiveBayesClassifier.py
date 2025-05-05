@@ -7,9 +7,10 @@ class NaiveBayesClassifier:
         self._conditional_probs = dict()
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
-        df: pd.DataFrame = pd.concat([X, y], axis=1)
-        features = df.columns[:-1]
-        target = df.columns[-1]
+        df: pd.DataFrame = X.copy()
+        df["target"] = y  # Ensure y is a Series and correctly added to DataFrame
+        features: list = X.columns
+        target: str = "target"
 
         # Laplace smoothing params
         self._unique_values_num = pd.unique(df[features].values.ravel()).shape[0]
@@ -27,7 +28,7 @@ class NaiveBayesClassifier:
             self._conditional_probs[feature] =(
                 (df.groupby([target, feature]).size().add(1))
                 .div(
-                    df.groupby('S').size().add(self._unique_values_num),
+                    df.groupby(target).size().add(self._unique_values_num),
                     level=0)
             )
 
